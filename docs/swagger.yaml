@@ -1,0 +1,342 @@
+basePath: /api
+definitions:
+  controllers.LoginInput:
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      password:
+        example: password123
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  controllers.RegisterInput:
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      name:
+        example: John Doe
+        type: string
+      password:
+        example: password123
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@smartfileapi.com
+    name: API Support
+  description: A smart file processing API with JWT authentication, caching, and background
+    processing
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Smart File API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login with email and password
+      parameters:
+      - description: Login credentials
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties: true
+            type: object
+      summary: User login
+      tags:
+      - Authentication
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account
+      parameters:
+      - description: User registration details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid input
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Email already registered
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Register new user
+      tags:
+      - Authentication
+  /files/:
+    get:
+      description: Get list of all files with pagination, filtering, sorting, and
+        search
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page (max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by file type
+        enum:
+        - image
+        - audio
+        - video
+        - document
+        - other
+        in: query
+        name: type
+        type: string
+      - description: Filter by status
+        enum:
+        - pending
+        - processing
+        - completed
+        - failed
+        in: query
+        name: status
+        type: string
+      - default: created_at
+        description: Sort by field
+        enum:
+        - created_at
+        - file_size
+        - file_name
+        - original_name
+        - file_type
+        in: query
+        name: sort
+        type: string
+      - default: desc
+        description: Sort order
+        enum:
+        - asc
+        - desc
+        in: query
+        name: order
+        type: string
+      - description: Search by filename
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Files retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all user files with pagination and filtering
+      tags:
+      - Files
+  /files/{id}:
+    delete:
+      description: Soft delete a file (can be restored)
+      parameters:
+      - description: File ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: File not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete file (soft delete)
+      tags:
+      - Files
+    get:
+      description: Get detailed information about a specific file
+      parameters:
+      - description: File ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: File retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: File not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get file detail
+      tags:
+      - Files
+  /files/statistics:
+    get:
+      description: Get statistics about user's files (total count, storage used, files
+        by type)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Statistics retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get file statistics
+      tags:
+      - Files
+  /files/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a file (max 10MB)
+      parameters:
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: File uploaded successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid file
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upload file
+      tags:
+      - Files
+  /health:
+    get:
+      description: Check if the API is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: API is healthy
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Health check
+      tags:
+      - Monitoring
+  /logs:
+    get:
+      description: Get recent application logs (last 100 lines)
+      parameters:
+      - description: Filter by log level
+        enum:
+        - info
+        - warning
+        - error
+        in: query
+        name: level
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logs retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get recent logs
+      tags:
+      - Monitoring
+  /metrics:
+    get:
+      description: Get application metrics (uptime, memory usage, goroutines, etc.)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Metrics retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get system metrics
+      tags:
+      - Monitoring
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
